@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: github-mcp-manager
+    container_name: github-mcp-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    networks:
+      - github-mcp
+    depends_on:
+      - db
+      - redis
+
+  nginx:
+    image: nginx:alpine
+    container_name: github-mcp-nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    networks:
+      - github-mcp
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: github-mcp-db
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: github_mcp_manager
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_PASSWORD: secret
+      MYSQL_USER: github_mcp
+    volumes:
+      - github-mcp-db:/var/lib/mysql
+    networks:
+      - github-mcp
+
+  redis:
+    image: redis:alpine
+    container_name: github-mcp-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - github-mcp
+
+networks:
+  github-mcp:
+    driver: bridge
+
+volumes:
+  github-mcp-db:
+    driver: local
